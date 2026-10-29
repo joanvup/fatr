@@ -1,0 +1,37 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# local data
+/data/*.db
+/data/*.db-journal
+/data/*.db-wal
+/data/*.db-shm
+/backups/
+
+# env
+.env
+.env*.local
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.tsbuildinfo
+next-env.d.ts
+
+# tests
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

@@ -1,0 +1,279 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Roles: ADMIN | COORDINATOR | THERAPIST | TEACHER
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         String
+  active       Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  courseLinks          UserCourse[]
+  therapyAssignments   StudentTherapy[]   @relation("TherapyTherapist")
+  attendanceAsPro      Attendance[]       @relation("AttendanceProfessional")
+  attendanceCreated    Attendance[]       @relation("AttendanceCreator")
+  cyclesCreated        ObservationCycle[]
+  observationsUpdated  Observation[]
+  followUpsResponsible FollowUp[]         @relation("FollowUpResponsible")
+  followUpsCreated     FollowUp[]         @relation("FollowUpCreator")
+  importBatches        ImportBatch[]
+
+  @@index([role, active])
+}
+
+model Course {
+  id        String   @id @default(cuid())
+  name      String
+  grade     String
+  year      Int
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  students  Student[]
+  cycles    ObservationCycle[]
+  userLinks UserCourse[]
+
+  @@unique([name, year])
+}
+
+model UserCourse {
+  id       String @id @default(cuid())
+  userId   String
+  courseId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+}
+
+model Student {
+  id                 String    @id @default(cuid())
+  documentId         String    @unique
+  firstName          String
+  lastName           String
+  birthDate          String?
+  sex                String
+  grade              String
+  guardianName       String?
+  guardianPhone      String?
+  guardianEmail      String?
+  diagnosis          String?
+  diagnosisUpdatedAt DateTime?
+  active             Boolean   @default(true)
+  courseId           String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  course       Course?          @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  observations Observation[]
+  followUps    FollowUp[]
+  therapies    StudentTherapy[]
+  attendances  Attendance[]
+
+  @@index([courseId, active])
+  @@index([lastName, firstName])
+}
+
+model Domain {
+  id        String  @id @default(cuid())
+  key       String  @unique
+  nameEs    String
+  nameEn    String
+  sortOrder Int
+  active    Boolean @default(true)
+
+  scores ObservationScore[]
+}
+
+model ObservationCycle {
+  id          String   @id @default(cuid())
+  courseId    String
+  year        Int
+  period      Int
+  label       String?
+  dateFrom    String
+  dateTo      String
+  status      String   @default("DRAFT")
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course       Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdBy    User               @relation(fields: [createdById], references: [id])
+  observations Observation[]
+
+  @@unique([courseId, year, period])
+  @@index([courseId, dateFrom])
+}
+
+model Observation {
+  id                 String   @id @default(cuid())
+  cycleId            String
+  studentId          String
+  observationDate    String?
+  parentMeetingDate  String?
+  parentAttended     Boolean?
+  studentMeetingDate String?
+  diagnosisNote      String?
+  nextFollowUpDate   String?
+  updatedById        String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  cycle    ObservationCycle  @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  student  Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  updatedBy User             @relation(fields: [updatedById], references: [id])
+  scores   ObservationScore[]
+
+  @@unique([cycleId, studentId])
+  @@index([studentId, observationDate])
+}
+
+model ObservationScore {
+  id            String @id @default(cuid())
+  observationId String
+  domainId      String
+  level         Int?
+  note          String?
+
+  observation Observation @relation(fields: [observationId], references: [id], onDelete: Cascade)
+  domain      Domain      @relation(fields: [domainId], references: [id])
+
+  @@unique([observationId, domainId])
+  @@index([domainId, level])
+}
+
+model FollowUp {
+  id                 String   @id @default(cuid())
+  studentId          String
+  cycleLabel         String?
+  startDate          String
+  followUpDate       String
+  realizationDate    String
+  diagnosisSnapshot  String?
+  descriptionInitial String?
+  strategies         String?
+  achievements       String?
+  followUpNotes      String?
+  responsibleId      String?
+  responsibleName    String
+  workArea           String?
+  counselorName      String?
+  status             String   @default("DRAFT")
+  createdById        String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  student     Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  responsible User?   @relation("FollowUpResponsible", fields: [responsibleId], references: [id], onDelete: SetNull)
+  createdBy   User    @relation("FollowUpCreator", fields: [createdById], references: [id])
+
+  @@index([studentId, followUpDate])
+  @@index([status, followUpDate])
+}
+
+// kind: THERAPY | SUPPORT_AREA
+model Therapy {
+  id        String  @id @default(cuid())
+  key       String  @unique
+  nameEs    String
+  kind      String  @default("THERAPY")
+  sortOrder Int
+  active    Boolean @default(true)
+
+  assignments StudentTherapy[]
+  attendances Attendance[]
+}
+
+model StudentTherapy {
+  id          String  @id @default(cuid())
+  studentId   String
+  therapyId   String
+  therapistId String?
+  startDate   String
+  endDate     String?
+  active      Boolean @default(true)
+
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  therapy   Therapy @relation(fields: [therapyId], references: [id])
+  therapist User?   @relation("TherapyTherapist", fields: [therapistId], references: [id], onDelete: SetNull)
+
+  @@unique([studentId, therapyId])
+  @@index([therapyId, active])
+}
+
+model Attendance {
+  id               String   @id @default(cuid())
+  studentId        String
+  therapyId        String
+  date             String
+  durationMinutes  Int?
+  startTime        String
+  endTime          String
+  professionalId   String
+  professionalName String
+  notes            String?
+  createdById      String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  student      Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  therapy      Therapy     @relation(fields: [therapyId], references: [id])
+  professional User        @relation("AttendanceProfessional", fields: [professionalId], references: [id])
+  createdBy    User        @relation("AttendanceCreator", fields: [createdById], references: [id])
+  signatures   Signature[]
+
+  @@unique([studentId, date, therapyId, startTime])
+  @@index([date])
+  @@index([studentId, date])
+  @@index([therapyId, date])
+}
+
+// role: PROFESSIONAL | GUARDIAN
+model Signature {
+  id           String   @id @default(cuid())
+  attendanceId String
+  role         String
+  data         Bytes
+  mimeType     String   @default("image/png")
+  signerName   String?
+  createdAt    DateTime @default(now())
+
+  attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+
+  @@unique([attendanceId, role])
+}
+
+model ImportBatch {
+  id          String   @id @default(cuid())
+  kind        String
+  filename    String
+  rowsJson    String
+  rowCount    Int
+  status      String   @default("PREVIEW")
+  createdById String
+  createdAt   DateTime @default(now())
+
+  createdBy User @relation(fields: [createdById], references: [id])
+}
+
+model Setting {
+  key         String   @id
+  value       String
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+}
