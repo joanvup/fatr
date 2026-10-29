@@ -3,8 +3,8 @@ import { cn } from "@/lib/utils";
 const base =
   "flex h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400";
 
-export function Input({ className, type = "text", ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input type={type} className={cn(base, type === "color" && "p-1", className)} {...props} />;
+export function Input({ className, type = "text", ref, ...props }: React.ComponentPropsWithRef<"input">) {
+  return <input ref={ref} type={type} className={cn(base, type === "color" && "p-1", className)} {...props} />;
 }
 
 export function Textarea({ className, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {

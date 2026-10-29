@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { SignaturePad } from "@/components/attendance/signature-pad";
+import { StudentCombobox } from "@/components/students/student-combobox";
 
 export type AttendanceStudentOption = {
   id: string;
@@ -48,7 +49,6 @@ export function AttendanceSheet({
   requireSignature: boolean;
 }) {
   const router = useRouter();
-  const [studentQuery, setStudentQuery] = useState("");
   const [studentId, setStudentId] = useState(defaultStudentId ?? "");
   const [therapyId, setTherapyId] = useState("");
   const [date, setDate] = useState(defaultDate);
@@ -64,20 +64,6 @@ export function AttendanceSheet({
   const [saving, setSaving] = useState(false);
 
   const duration = minutesBetween(startTime, endTime);
-
-  const studentOptions = useMemo(() => {
-    const query = studentQuery.trim().toLowerCase();
-    const filtered = query
-      ? students.filter((student) =>
-          `${student.name} ${student.documentId} ${student.courseName}`.toLowerCase().includes(query),
-        )
-      : students;
-    const selected = students.find((student) => student.id === studentId);
-    if (selected && !filtered.some((student) => student.id === studentId)) {
-      return [selected, ...filtered];
-    }
-    return filtered;
-  }, [students, studentId, studentQuery]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -132,7 +118,6 @@ export function AttendanceSheet({
         description: `${formatDuration(result.durationMinutes ?? duration)} · ${date}`,
       });
       setStudentId("");
-      setStudentQuery("");
       setTherapyId("");
       setNotes("");
       setSignerGuardianName("");
@@ -196,32 +181,17 @@ export function AttendanceSheet({
               <Input id="duration" value={formatDuration(duration)} readOnly disabled />
             </Field>
 
-            <Field label="Buscar estudiante" htmlFor="studentQuery" hint="Nombre, apellido o documento.">
-              <Input
-                id="studentQuery"
-                value={studentQuery}
-                onChange={(event) => setStudentQuery(event.currentTarget.value)}
-                placeholder="Filtrar estudiantes…"
+            <Field label="Estudiante" htmlFor="studentId" required className="sm:col-span-2">
+              <StudentCombobox
+                id="studentId"
+                students={students}
+                value={studentId}
+                onChange={setStudentId}
+                invalid={Boolean(error) && !studentId}
+                placeholder="Selecciona un estudiante"
               />
             </Field>
-            <Field label="Estudiante" htmlFor="studentId" required className="sm:col-span-2">
-              <Select
-                id="studentId"
-                value={studentId}
-                onChange={(event) => setStudentId(event.currentTarget.value)}
-                required
-              >
-                <option value="" disabled>
-                  Selecciona un estudiante
-                </option>
-                {studentOptions.map((student) => (
-                  <option key={student.id} value={student.id}>
-                    {student.name} · {student.documentId} · {student.courseName}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="Profesional" htmlFor="professionalId" required>
+            <Field label="Profesional" htmlFor="professionalId" required className="sm:col-span-2">
               <Select
                 id="professionalId"
                 value={professionalId}

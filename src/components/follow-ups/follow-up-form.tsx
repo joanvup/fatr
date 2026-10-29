@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/form-buttons";
+import { StudentCombobox } from "@/components/students/student-combobox";
 
 export type FollowUpRecord = {
   id: string;
@@ -104,8 +105,8 @@ export function FollowUpForm({
   }, [state, router, mode]);
 
   const errors = state.fieldErrors ?? {};
-  const selectedStudentId = followUp?.studentId ?? defaultStudentId ?? "";
-  const selectedStudent = students.find((student) => student.id === selectedStudentId);
+  const [studentId, setStudentId] = useState(followUp?.studentId ?? defaultStudentId ?? "");
+  const selectedStudent = students.find((student) => student.id === studentId);
 
   return (
     <form action={action} className="space-y-4">
@@ -128,16 +129,16 @@ export function FollowUpForm({
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {mode === "create" ? (
             <Field label="Estudiante" htmlFor="studentId" required error={errors.studentId} className="sm:col-span-2">
-              <Select id="studentId" name="studentId" defaultValue={selectedStudentId} required>
-                <option value="" disabled>
-                  Selecciona un estudiante
-                </option>
-                {students.map((student) => (
-                  <option key={student.id} value={student.id}>
-                    {student.name} · {student.documentId} · {student.courseName}
-                  </option>
-                ))}
-              </Select>
+              <StudentCombobox
+                id="studentId"
+                name="studentId"
+                students={students}
+                value={studentId}
+                onChange={setStudentId}
+                required
+                invalid={Boolean(errors.studentId)}
+                placeholder="Selecciona un estudiante"
+              />
             </Field>
           ) : (
             <>
